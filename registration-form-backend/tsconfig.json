@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "es2016",                // Modern JavaScript support
+    "module": "commonjs",              // Compatible with Node.js
+    "rootDir": "src",                  // Specify the root directory
+    "outDir": "dist",                  // Output directory for compiled files
+    "strict": true,                    // Enable strict type checking
+    "esModuleInterop": true,           // Ensure compatibility with CommonJS modules
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,               // Skip checking type definitions
+    "noImplicitAny": false,            // 允许隐式 any 类型
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

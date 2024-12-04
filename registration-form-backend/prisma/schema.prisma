@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model mail_queue {
+  id         BigInt    @id
+  recipient  String
+  subject    String
+  content    String
+  status     String    @default("pending")
+  created_at DateTime? @default(now())
+}
+
+model projects {
+  id          BigInt    @id
+  name        String    @unique(map: "sqlite_autoindex_projects_2")
+  description String?
+  start_date  DateTime
+  end_date    DateTime
+  is_enabled  Boolean   @default(true)
+  created_at  DateTime? @default(now())
+  updated_at  DateTime? @default(now())
+
+  @@index([is_enabled], map: "idx_projects_is_enabled")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model registrations {
+  id                       BigInt    @id
+  user_id                  BigInt?
+  project_id               BigInt?
+  name                     String
+  contact_info             String
+  query_key                String?   @unique(map: "sqlite_autoindex_registrations_2")
+  is_contact_query_allowed Boolean   @default(true)
+  created_at               DateTime? @default(now())
+  users                    users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  status                   Int       @default(0) // 新增字段，默认值为 0
+
+  @@index([project_id], map: "idx_registrations_project_id")
+  @@index([user_id], map: "idx_registrations_user_id")
+}
+
+model users {
+  id            BigInt          @id
+  username      String
+  password      String
+  email         String          @unique(map: "sqlite_autoindex_users_3")
+  role          String          @default("user")
+  created_at    DateTime?       @default(now())
+  updated_at    DateTime?       @default(now())
+  registrations registrations[] @ignore
+
+  @@index([email], map: "idx_users_email")
+  @@index([username], map: "idx_users_username")
+}
