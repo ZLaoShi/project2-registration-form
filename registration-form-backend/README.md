@@ -12,6 +12,10 @@ pnpm install
 pnpm prisma generate
 ```
 
+
+### **请根据您的操作系统启动Reids，需求端口为:6379**
+
+
 启动本地调试服务器
 
 ```powershell

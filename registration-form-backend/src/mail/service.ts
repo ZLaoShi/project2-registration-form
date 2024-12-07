@@ -18,14 +18,13 @@ export const sendVerificationCode = async (email: string) => {
 
     // 创建邮件内容
     const subject = 'Your Verification Code';
-    const content = `Your verification code is: ${verificationCode}. Please use this code within 5 minutes to complete your registration. For your security, do not share this code with anyone.`;
+    const content = `Your verification code is: ${verificationCode}. Please use this code within 5 minutes to complete your registration.`;
     const htmlContent = `
       <p>Your verification code is: <strong>${verificationCode}</strong></p>
       <p><b>Note:</b> This code is valid for 5 minutes. Please complete your registration within this time frame.</p>
-      <p>For your security, do not share this code with anyone.</p>
     `;
 
-    // 将邮件任务推送到 Redis 队列，并持久化到 SQLite
+    // 将任务保存到数据库
     await prisma.mail_queue.create({
       data: {
         id: mailId,
@@ -36,31 +35,14 @@ export const sendVerificationCode = async (email: string) => {
       },
     });
 
-    // 将邮件任务推送到 Redis 列表中以进行异步发送
-    await redisClient.lPush('mailQueue', JSON.stringify({ mailId, recipient: email, subject, content }));
+    // 推送任务到 Redis 队列
+    const task = { mailId, recipient: email, subject, content, htmlContent };
+    await redisClient.lPush('mailQueue', JSON.stringify(task));
 
-    // 直接发送邮件
-    try {
-      await sendMail(email, subject, content, htmlContent);
-      console.log(`Verification code ${verificationCode} sent to ${email}`);
-      // 邮件发送成功，更新数据库中该任务的状态为 sent
-      await prisma.mail_queue.update({
-        where: { id: mailId },
-        data: { status: 'sent' },
-      });
-    } catch (sendError) {
-      console.error('Error sending email:', sendError);
-      // 如果发送失败，更新数据库中该任务的状态为 failed
-      await prisma.mail_queue.update({
-        where: { id: mailId },
-        data: { status: 'failed' },
-      });
-    }
-
-    return { type: 'success' as const, value: { message: 'Verification code sent' } };
+    return { type: 'success' as const, value: { message: 'Verification code queued for sending' } };
   } catch (error) {
-    console.error('Error sending verification code:', error);
-    return { type: 'error' as const, error: 'Failed to send verification code' };
+    console.error('Error queuing verification code:', error);
+    return { type: 'error' as const, error: 'Failed to queue verification code' };
   }
 };
 
@@ -86,41 +68,27 @@ export const sendTemporaryUserRegistrationVerificationCode = async (email: strin
       <p>For your security, do not share this code with anyone.</p>
     `;
 
-    // 将邮件任务持久化到数据库
+    // 将任务持久化到数据库
     await prisma.mail_queue.create({
       data: {
         id: mailId,
         recipient: email,
         subject,
         content,
-        status: 'pending',
+        status: 'pending', // 初始状态为 pending
       },
     });
 
-    // 推送任务到 Redis 邮件队列
-    await redisClient.lPush('mailQueue', JSON.stringify({ mailId, recipient: email, subject, content }));
+    // 将任务推送到 Redis 队列
+    const task = { mailId, recipient: email, subject, content, htmlContent };
+    await redisClient.lPush('mailQueue', JSON.stringify(task));
 
-    // 尝试直接发送邮件
-    try {
-      await sendMail(email, subject, content, htmlContent);
-      console.log(`Verification code ${verificationCode} sent to ${email}`);
-      await prisma.mail_queue.update({
-        where: { id: mailId },
-        data: { status: 'sent' },
-      });
-    } catch (sendError) {
-      console.error('Error sending email:', sendError);
-      await prisma.mail_queue.update({
-        where: { id: mailId },
-        data: { status: 'failed' },
-      });
-    }
-
-    return { type: 'success' as const, value: { message: 'Verification code sent successfully' } };
+    // 返回成功消息
+    console.log(`Mail task queued for recipient: ${email}`);
+    return { type: 'success' as const, value: { message: 'Verification code queued for sending' } };
   } catch (error) {
-    console.error('Error sending verification code:', error);
-    return { type: 'error' as const, error: 'Failed to send verification code' };
+    console.error('Error queuing verification code:', error);
+    return { type: 'error' as const, error: 'Failed to queue verification code' };
   }
 };
-
 

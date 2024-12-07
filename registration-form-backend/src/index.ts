@@ -4,8 +4,12 @@ import { AddressInfo } from 'node:net';
 import authRouter from './auth/router';
 import projectRouter from './projects/router';
 import registrationRouter from './registrations/router';
+import { startMailConsumer } from './mail/consumer';
 
 const app = new Hono();
+
+//启动并邮件队列消费者
+startMailConsumer();
 
 // 挂载认证路由
 app.route('/auth', authRouter);
